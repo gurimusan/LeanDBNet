@@ -105,7 +105,7 @@ def main(args):
         model=ModelConfig(
             model_args={
                 "backbone": args.backbone,
-                "decoder": "DBNetDecoder",
+                "decoder": args.decoder,
                 "loss": "DBNetLoss",
                 }),
         training=TrainingConfig(
@@ -231,6 +231,7 @@ def parse_args():
     parser.add_argument("--output-dir", type=str, default="out", help="path to save checkpoints and final model")
     parser.add_argument("--epochs", type=int, default=10, help="number of epochs to train the model on")
     parser.add_argument("-b", "--batch-size", type=int, default=2, help="batch size for training")
+    parser.add_argument("--decoder", type=str, default="DBNetDecoder", help="decoder model")
     parser.add_argument("--backbone", type=str, default="deformable_resnet18", help="backbone model")
     parser.add_argument("--dataset", type=str, default="icdar2015", help="dataset class")
     parser.add_argument("--resume", type=str, default=None, help="Path to your checkpoint")
