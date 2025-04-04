@@ -11,7 +11,7 @@ from torchinfo import summary
 from tqdm.auto import tqdm
 
 from src.dbnet.modeling.backbones import deformable_resnet50, deformable_resnet18, ResNet18_Weights
-from src.dbnet.configs import Config, ModelConfig, TrainingConfig, ValidationConfig
+from src.dbnet.configs import Config, ModelConfig, TrainingConfig, ValidationConfig, OptimizerType, SchedulerType
 from src.dbnet.datasets import ICDAR_MEAN, ICDAR_STD, ICDAR2015Dataset, collate_fn
 from src.dbnet.datasets import transforms as T
 from src.dbnet.modeling import build_model
@@ -98,6 +98,35 @@ def get_dataset(args, c):
     return train_set, val_set
 
 
+def get_optimizer(args, c, model):
+    if c.training.optimizer == OptimizerType.ADAM:
+        return torch.optim.AdamW(
+            [p for p in model.parameters() if p.requires_grad],
+            lr=c.training.lr,
+            weight_decay=c.training.weight_decay,
+            betas=(0.95, 0.999),
+            eps=1e-6,
+        )
+    elif c.training.optimizer == OptimizerType.SGD:
+        return torch.optim.SGD(
+            [p for p in model.parameters() if p.requires_grad],
+            lr=c.training.lr,
+            weight_decay=c.training.weight_decay,
+            momentum=0.9,
+        )
+    raise NotImplementedError()
+
+
+def get_scheduler(args, c, optimizer, train_size):
+    if c.training.scheduler == SchedulerType.POLY:
+        return PolynomialLR(optimizer, c.training.epochs * train_size)
+    elif c.training.scheduler == SchedulerType.ONECYCLE:
+        return OneCycleLR(optimizer, c.training.lr, c.training.epochs * train_size)
+    elif c.training.scheduler == SchedulerType.COSINE:
+        return CosineAnnealingLR(optimizer, c.training.epochs * train_size, eta_min=c.training.lr / 25e4)
+    raise NotImplementedError()
+
+
 def main(args):
     pbar = tqdm()
 
@@ -117,6 +146,10 @@ def main(args):
             gt_root=[
                 "./datasets/icdar2015/ch4_training_localization_transcription_gt",
                 ],
+            scheduler=SchedulerType(args.scheduler),
+            optimizer=OptimizerType(args.optimizer),
+            lr=args.lr,
+            weight_decay=args.weight_decay,
             ),
         validation=ValidationConfig(
             batch_size=args.batch_size,
@@ -164,16 +197,13 @@ def main(args):
         model.load_state_dict(checkpoint)
 
     # optimizer
-    optimizer = torch.optim.Adam(
-        [p for p in model.parameters() if p.requires_grad],
-        c.training.lr,
-        betas=(0.95, 0.999),
-        eps=1e-6,
-        weight_decay=0,
-    )
+    optimizer = get_optimizer(args, c, model)
 
     # scheduler
-    scheduler = PolynomialLR(optimizer, c.training.epochs * len(train_loader))
+    scheduler = get_scheduler(args, c, optimizer, len(train_loader))
+
+    print(type(optimizer))
+    print(type(scheduler))
 
     # metrics
     val_metric = QuadMetric()
@@ -231,9 +261,15 @@ def parse_args():
     parser.add_argument("--output-dir", type=str, default="out", help="path to save checkpoints and final model")
     parser.add_argument("--epochs", type=int, default=10, help="number of epochs to train the model on")
     parser.add_argument("-b", "--batch-size", type=int, default=2, help="batch size for training")
+    parser.add_argument("--lr", type=float, default=0.007, help="learning rate for the optimizer")
+    parser.add_argument("--wd", "--weight-decay", default=0, type=float, help="weight decay", dest="weight_decay")
     parser.add_argument("--decoder", type=str, default="DBNetDecoder", help="decoder model")
     parser.add_argument("--backbone", type=str, default="deformable_resnet18", help="backbone model")
-    parser.add_argument("--dataset", type=str, default="icdar2015", help="dataset class")
+    parser.add_argument("--dataset", type=str, default="icdar2015", choices=["icdar2015"], help="dataset class")
+    parser.add_argument(
+        "--scheduler", type=str, default="poly", choices=["cosine", "onecycle", "poly"], help="scheduler to use"
+    )
+    parser.add_argument("--optimizer", type=str, default="adam", choices=["sgd", "adam"], help="optimizer to use")
     parser.add_argument("--resume", type=str, default=None, help="Path to your checkpoint")
     parser.add_argument("--early-stop", action="store_true", help="Enable early stopping")
     parser.add_argument("--early-stop-epochs", type=int, default=10, help="Patience for early stopping")

@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 from dataclass_wizard import JSONPyWizard
 
 class OptimizerType(StrEnum):
+    SGD = "sgd"
     ADAM = "adam"
-    ADAMW = "adamw"
 
 
 class SchedulerType(StrEnum):
@@ -33,15 +33,15 @@ class ModelConfig:
 @dataclass
 class TrainingConfig:
     workers: int | None = None
-    batch_size: int = 8
     epochs: int = 10
+    batch_size: int = 2
     dataset_class: str = "ICDAR2015Dataset"
     img_root: list[str] = field(default_factory=lambda: [])
     gt_root: list[str] = field(default_factory=lambda: [])
     val_ratio: float = 0.2
-    lr: float = 1e-3
     scheduler: SchedulerType = SchedulerType.POLY
     optimizer: OptimizerType = OptimizerType.ADAM
+    lr: float = 0.007
     weight_decay: float = 0
 
 
