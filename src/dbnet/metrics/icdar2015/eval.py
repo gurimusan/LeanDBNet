@@ -1,9 +1,10 @@
 from collections import namedtuple
+
 import numpy as np
 from shapely.geometry import Polygon
 
 
-class DetectionIoUEvaluator(object):
+class DetectionIoUEvaluator:
     def __init__(self, iou_constraint=0.5, area_precision_constraint=0.5):
         self.iou_constraint = iou_constraint
         self.area_precision_constraint = area_precision_constraint
@@ -214,7 +215,7 @@ if __name__ == '__main__':
         'ignore': False,
     }]]
     results = []
-    for gt, pred in zip(gts, preds):
+    for gt, pred in zip(gts, preds, strict=False):
         results.append(evaluator.evaluate_image(gt, pred))
     metrics = evaluator.combine_results(results)
     print(metrics)

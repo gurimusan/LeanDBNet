@@ -58,9 +58,11 @@ path = "src/dbnet/__about__.py"
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
+  "types-tqdm",
+  "types-shapely",
 ]
 [tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/dbnet tests}"
+check = "mypy --config-file mypy.ini {args:src/dbnet}"
 
 [tool.coverage.run]
 source_pkgs = ["dbnet", "tests"]

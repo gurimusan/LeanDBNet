@@ -1,12 +1,11 @@
 import math
-import random
-
-import torch
-import numpy as np
-import pytest
 from unittest.mock import patch
 
-from src.dbnet.datasets.transforms import RandomMinResize
+import numpy as np
+import pytest
+import torch
+
+from dbnet.datasets.transforms import RandomMinResize
 
 
 @pytest.mark.parametrize(

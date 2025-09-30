@@ -1,9 +1,10 @@
-import torch
+from unittest.mock import patch
+
 import numpy as np
 import pytest
-from unittest.mock import patch, MagicMock
+import torch
 
-from src.dbnet.datasets.transforms import RandomCrop
+from dbnet.datasets.transforms import RandomCrop
 
 
 class TestRandomCrop:
@@ -83,7 +84,7 @@ class TestRandomCrop:
             # Polygon coordinates should be shifted by (-50,-20) and scaled by 1.5
             for original_poly, cropped_poly in zip(
                     orig_target["polygons"][1:],
-                    cropped_target["polygons"]):
+                    cropped_target["polygons"], strict=False):
                 expected_poly = (original_poly - np.array([50, 20])) * 1.5
                 np.testing.assert_allclose(cropped_poly, expected_poly, rtol=1e-5)
 

@@ -1,14 +1,15 @@
+from typing import Any
+
+import cv2
+import numpy as np
+import pyclipper
 import torch
+from shapely.geometry import Polygon
 from torch import nn
 
-import numpy as np
-import cv2
-from shapely.geometry import Polygon
-import pyclipper
-
+from .balance_cross_entropy_loss import BalanceCrossEntropyLoss
 from .dice_loss import DiceLoss
 from .l1_loss import MaskL1Loss
-from .balance_cross_entropy_loss import BalanceCrossEntropyLoss
 
 
 class DBNetLoss(nn.Module):
@@ -24,6 +25,18 @@ class DBNetLoss(nn.Module):
     min_size_box = 8
 
     def __init__(self, eps=1e-6, alpha=1.0, beta=10):
+        """
+        Args:
+            eps: epsilon for dice loss
+            alpha: weight for bce_loss (prob_map loss)
+                - Paper formula: L = Ls + α*Lb + β*Lt
+                - Implementation formula: L = Lb + α*Ls + β*Lt
+                - MhLiao/DB: alpha=5.0, beta=10
+                - WenmuZhou/DBNet.pytorch: alpha=1.0, beta=10
+                - This implementation: alpha=1.0, beta=10 (following majority)
+            beta: weight for l1_loss (threshold_map loss)
+                - All implementations use beta=10
+        """
         super().__init__()
         self.dice_loss = DiceLoss(eps=eps)
         self.l1_loss = MaskL1Loss()
@@ -32,10 +45,15 @@ class DBNetLoss(nn.Module):
         self.alpha = alpha
         self.beta = beta
 
-    def forward(self, pred: torch.Tensor, target: list[any]):
+    def forward(self, pred: dict[str, torch.Tensor], target: list[dict[str, Any]]):
         prob_map = pred.get("prob_map")
 
-        seg_target, seg_mask, thresh_target, thresh_mask = self._build_target(target, prob_map.shape)
+        if prob_map is None:
+            raise ValueError("prob_map is required in pred dict")
+
+        shape = prob_map.shape
+        target_shape = (shape[0], shape[1], shape[2], shape[3])
+        seg_target, seg_mask, thresh_target, thresh_mask = self._build_target(target, target_shape)
         seg_target = torch.from_numpy(seg_target).to(prob_map.device)
         seg_mask = torch.from_numpy(seg_mask).to(prob_map.device)
         thresh_target = torch.from_numpy(thresh_target).to(prob_map.device)
@@ -45,19 +63,19 @@ class DBNetLoss(nn.Module):
         if "thresh_map" in pred:
             l1_loss, l1_metric = self.l1_loss(pred["thresh_map"], thresh_target, thresh_mask)
             dice_loss = self.dice_loss(pred["binary_map"], seg_target, seg_mask)
-            # TODO wrong?
-            # L = Ls + a*Lb + b*Lt
-            # Ls = probability map loss = bce_loss
-            # Lb = approximate binary map loss = dice_loss
-            # Lt = threshold map losss = l1_loss
-            # but
-            # L = Lb + a*Ls + b*Lt ?
+            # Note: Formula difference between paper and implementation
+            # Paper formula: L = Ls + α*Lb + β*Lt
+            # Implementation: L = Lb + α*Ls + β*Lt
+            # where Ls = probability map loss (bce_loss)
+            #       Lb = approximate binary map loss (dice_loss)
+            #       Lt = threshold map loss (l1_loss)
+            # This follows the original MhLiao/DB implementation
             loss = dice_loss + self.alpha * bce_loss + self.beta * l1_loss
         else:
             loss = bce_loss
         return loss
 
-    def _build_target(self, target: list[any], target_shape: tuple[int, int, int, int]):
+    def _build_target(self, target: list[dict[str, Any]], target_shape: tuple[int, int, int, int]):
         seg_target: np.ndarray = np.zeros(target_shape, dtype=np.uint8)
         seg_mask: np.ndarray = np.ones((target_shape[0], target_shape[2], target_shape[3]), dtype=np.float32)
         thresh_target: np.ndarray = np.zeros(target_shape, dtype=np.float32)
@@ -66,6 +84,10 @@ class DBNetLoss(nn.Module):
         for idx, tgt in enumerate(target):
             polygons = tgt.get("polygons")
             polygon_ignores = tgt.get("polygon_ignores")
+
+            if polygons is None or polygon_ignores is None:
+                continue
+
             for class_idx in range(len(polygons)):
                 polygon = polygons[class_idx]
                 height = max(polygon[:, 1]) - min(polygon[:, 1])
@@ -131,7 +153,7 @@ class DBNetLoss(nn.Module):
         padded_polygon: np.ndarray = np.array(padding.Execute(distance)[0])
 
         # Fill the mask with 1 on the new padded polygon
-        cv2.fillPoly(mask, [padded_polygon.astype(np.int32)], 1.0)  # type: ignore[call-overload]
+        cv2.fillPoly(mask, [padded_polygon.astype(np.int32)], 1.0)
 
         # Get min/max to recover polygon after distance computation
         xmin = padded_polygon[:, 0].min()
@@ -179,7 +201,7 @@ class DBNetLoss(nn.Module):
         a: np.ndarray,
         b: np.ndarray,
         eps: float = 1e-6,
-    ) -> float:
+    ) -> np.ndarray:
         """Compute the distance for each point of the map (xs, ys) to the (a, b) segment
 
         Args:
@@ -202,4 +224,4 @@ class DBNetLoss(nn.Module):
         square_sin = np.nan_to_num(square_sin)
         result = np.sqrt(square_dist_1 * square_dist_2 * square_sin / square_dist + eps)
         result[cosin < 0] = np.sqrt(np.fmin(square_dist_1, square_dist_2))[cosin < 0]
-        return result
+        return np.asarray(result)

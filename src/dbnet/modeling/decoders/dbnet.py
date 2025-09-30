@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 from torch import nn
 
@@ -134,7 +136,7 @@ class DBNetDecoder(nn.Module):
 
         fuse = torch.cat((p5, p4, p3, p2), 1)
 
-        result: dict[str, any] = dict()
+        result: dict[str, Any] = dict()
 
         # pred text segmentation map
         prob_map = self.binarize(fuse)

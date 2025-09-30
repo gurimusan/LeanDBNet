@@ -1,6 +1,8 @@
+from typing import Any
+
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class ScaleChannelAttention(nn.Module):
@@ -285,7 +287,7 @@ class DBNetPlusDecoder(nn.Module):
         fuse = torch.cat((p5, p4, p3, p2), 1)
         fuse = self.concat_attention(fuse, [p5, p4, p3, p2])
 
-        result: dict[str, any] = dict()
+        result: dict[str, Any] = dict()
 
         # pred text segmentation map
         prob_map = self.binarize(fuse)

@@ -1,22 +1,17 @@
 from pathlib import Path
 
 import numpy as np
-
 import torch
-from torchvision.utils import save_image
-from torch.optim.lr_scheduler import CosineAnnealingLR, MultiplicativeLR, OneCycleLR, PolynomialLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, OneCycleLR, PolynomialLR
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
-from torchinfo import summary
-
 from tqdm.auto import tqdm
 
-from src.dbnet.modeling.backbones import deformable_resnet50, deformable_resnet18, ResNet18_Weights
-from src.dbnet.configs import Config, ModelConfig, TrainingConfig, ValidationConfig, OptimizerType, SchedulerType
-from src.dbnet.datasets import ICDAR_MEAN, ICDAR_STD, ICDAR2015Dataset, collate_fn
-from src.dbnet.datasets import transforms as T
-from src.dbnet.modeling import build_model
-from src.dbnet.metrics.icdar2015 import QuadMetric
-from src.dbnet.utils import EarlyStopper
+from dbnet.configs import Config, ModelConfig, OptimizerType, SchedulerType, TrainingConfig, ValidationConfig
+from dbnet.datasets import ICDAR_MEAN, ICDAR_STD, ICDAR2015Dataset, collate_fn
+from dbnet.datasets import transforms as T
+from dbnet.metrics.icdar2015 import QuadMetric
+from dbnet.modeling import build_model
+from dbnet.utils import EarlyStopper
 
 
 def train(model, train_loader, optimizer, scheduler, batch_transforms):
@@ -114,7 +109,7 @@ def get_optimizer(args, c, model):
             weight_decay=c.training.weight_decay,
             momentum=0.9,
         )
-    raise NotImplementedError()
+    raise NotImplementedError
 
 
 def get_scheduler(args, c, optimizer, train_size):
@@ -124,7 +119,7 @@ def get_scheduler(args, c, optimizer, train_size):
         return OneCycleLR(optimizer, c.training.lr, c.training.epochs * train_size)
     elif c.training.scheduler == SchedulerType.COSINE:
         return CosineAnnealingLR(optimizer, c.training.epochs * train_size, eta_min=c.training.lr / 25e4)
-    raise NotImplementedError()
+    raise NotImplementedError
 
 
 def main(args):
@@ -233,7 +228,7 @@ def main(args):
                 torch.save(model.state_dict(), Path(args.output_dir) / f"{exp_name}.pt")
                 min_loss = val_loss
         else:
-            pbar.write(f"Saving state...")
+            pbar.write("Saving state...")
             torch.save(model.state_dict(), Path(args.output_dir) / f"{exp_name}.pt")
 
         log_msg = f"Epoch {epoch + 1}/{c.training.epochs} - Validation loss: {val_loss:.6} "

@@ -1,8 +1,5 @@
 import torch
-import torch.nn as nn
-import numpy as np
-import cv2
-from scipy import ndimage
+from torch import nn
 
 
 class DiceLoss(nn.Module):

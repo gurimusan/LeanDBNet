@@ -1,8 +1,10 @@
+from typing import Any
+
 import torch
 
 
-def collate_fn(samples: list[tuple[torch.Tensor, any]]) -> tuple[torch.Tensor, list[any]]:
-    images, targets = zip(*samples)
+def collate_fn(samples: list[tuple[torch.Tensor, Any]]) -> tuple[torch.Tensor, list[Any]]:
+    images, targets = zip(*samples, strict=False)
 
     max_h = 0
     max_w = 0

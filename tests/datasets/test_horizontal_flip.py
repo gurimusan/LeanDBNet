@@ -1,8 +1,7 @@
-import torch
 import numpy as np
-import pytest
+import torch
 
-from src.dbnet.datasets.transforms import HorizontalFlip
+from dbnet.datasets.transforms import HorizontalFlip
 
 
 def test_horizontal_flip_basic():
