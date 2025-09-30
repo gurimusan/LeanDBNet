@@ -1,9 +1,17 @@
+from typing import Any
+
 import torch
 from torch import nn
-from torchvision.models import ResNet18_Weights, ResNet34_Weights, ResNet50_Weights, ResNet101_Weights, ResNet152_Weights
+from torchvision.models import (
+    ResNet18_Weights,
+    ResNet34_Weights,
+    ResNet50_Weights,
+    ResNet101_Weights,
+    ResNet152_Weights,
+)
 
 
-def _ovewrite_named_param(kwargs: dict[str, any], param: str, new_value: any) -> None:
+def _ovewrite_named_param(kwargs: dict[str, Any], param: str, new_value: Any) -> None:
     if param in kwargs:
         if kwargs[param] != new_value:
             raise ValueError(f"The parameter '{param}' expected value {new_value} but got {kwargs[param]} instead.")
@@ -210,7 +218,7 @@ def _make_bottleneck_block_layer(in_channel: int, out_channel: int, block: int, 
     return nn.Sequential(*layers)
 
 
-def resnet18(*, weights: ResNet18_Weights | None = ResNet18_Weights.DEFAULT, progress: bool = True, **kwargs: any) -> ResNet:
+def resnet18(*, weights: ResNet18_Weights | None = ResNet18_Weights.DEFAULT, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet18
 
     1. 畳み込み層 (64, 7x7, 2)
@@ -240,7 +248,7 @@ def resnet18(*, weights: ResNet18_Weights | None = ResNet18_Weights.DEFAULT, pro
     return model
 
 
-def deformable_resnet18(*, weights: ResNet18_Weights | None = ResNet18_Weights.DEFAULT, progress: bool = True, **kwargs: any) -> ResNet:
+def deformable_resnet18(*, weights: ResNet18_Weights | None = ResNet18_Weights.DEFAULT, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet18
 
     1. 畳み込み層 (64, 7x7, 2)
@@ -270,7 +278,7 @@ def deformable_resnet18(*, weights: ResNet18_Weights | None = ResNet18_Weights.D
     return model
 
 
-def resnet34(*, weights: ResNet34_Weights | None = ResNet34_Weights.DEFAULT, progress: bool = True, **kwargs: any) -> ResNet:
+def resnet34(*, weights: ResNet34_Weights | None = ResNet34_Weights.DEFAULT, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet34
 
     1. 畳み込み層 (64, 7x7, 2)
@@ -300,7 +308,7 @@ def resnet34(*, weights: ResNet34_Weights | None = ResNet34_Weights.DEFAULT, pro
     return model
 
 
-def resnet50(*, weights: ResNet50_Weights | None = ResNet50_Weights.DEFAULT, progress: bool = True, **kwargs: any) -> ResNet:
+def resnet50(*, weights: ResNet50_Weights | None = ResNet50_Weights.DEFAULT, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet50
 
     1. 畳み込み層 (64, 7x7, 2)
@@ -330,7 +338,7 @@ def resnet50(*, weights: ResNet50_Weights | None = ResNet50_Weights.DEFAULT, pro
     return model
 
 
-def deformable_resnet50(*, weights: ResNet50_Weights | None = ResNet50_Weights.DEFAULT, progress: bool = True, **kwargs: any) -> ResNet:
+def deformable_resnet50(*, weights: ResNet50_Weights | None = ResNet50_Weights.DEFAULT, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet50
 
     1. 畳み込み層 (64, 7x7, 2)
@@ -360,7 +368,7 @@ def deformable_resnet50(*, weights: ResNet50_Weights | None = ResNet50_Weights.D
     return model
 
 
-def resnet101(*, weights: ResNet101_Weights | None = ResNet101_Weights.DEFAULT, progress: bool = True, **kwargs: any) -> ResNet:
+def resnet101(*, weights: ResNet101_Weights | None = ResNet101_Weights.DEFAULT, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet101
 
     1. 畳み込み層 (64, 7x7, 2)
@@ -390,7 +398,7 @@ def resnet101(*, weights: ResNet101_Weights | None = ResNet101_Weights.DEFAULT, 
     return model
 
 
-def resnet152(*, weights: ResNet152_Weights | None = ResNet152_Weights.DEFAULT, progress: bool = True, **kwargs: any) -> ResNet:
+def resnet152(*, weights: ResNet152_Weights | None = ResNet152_Weights.DEFAULT, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet152
 
     1. 畳み込み層 (64, 7x7, 2)

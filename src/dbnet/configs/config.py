@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from enum import StrEnum
-
 from dataclasses import dataclass, field
+from enum import StrEnum
+from typing import Any, Optional
 
 from dataclass_wizard import JSONPyWizard
+
 
 class OptimizerType(StrEnum):
     SGD = "sgd"
@@ -20,8 +21,8 @@ class SchedulerType(StrEnum):
 @dataclass
 class ModelConfig:
     model: str = "DBNet"
-    model_args: dict[str, any] = field(default_factory=lambda: {
-        "backbone": "deformable_resnet50",
+    model_args: dict[str, Any] = field(default_factory=lambda: {
+        "backbone": "resnet18",  # Paper default, change to "deformable_resnet50" for better performance
         "backbone_args": {},
         "decoder": "DBNetDecoder",
         "decoder_args": {},
@@ -36,8 +37,8 @@ class TrainingConfig:
     epochs: int = 10
     batch_size: int = 2
     dataset_class: str = "ICDAR2015Dataset"
-    img_root: list[str] = field(default_factory=lambda: [])
-    gt_root: list[str] = field(default_factory=lambda: [])
+    img_root: list[str] = field(default_factory=list)
+    gt_root: list[str] = field(default_factory=list)
     val_ratio: float = 0.2
     scheduler: SchedulerType = SchedulerType.POLY
     optimizer: OptimizerType = OptimizerType.ADAM
@@ -50,8 +51,8 @@ class ValidationConfig:
     workers: int | None = None
     batch_size: int = 8
     dataset_class: str = "ICDAR2015Dataset"
-    img_root: list[str] = field(default_factory=lambda: [])
-    gt_root: list[str] = field(default_factory=lambda: [])
+    img_root: list[str] = field(default_factory=list)
+    gt_root: list[str] = field(default_factory=list)
 
 
 @dataclass

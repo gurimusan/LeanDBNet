@@ -1,6 +1,7 @@
 import torch
-from src.dbnet.modeling.backbones import deformable_resnet50, deformable_resnet18
-from src.dbnet.modeling.decoders import DBNetDecoder
+
+from dbnet.modeling.backbones import deformable_resnet18, deformable_resnet50
+from dbnet.modeling.decoders import DBNetDecoder
 
 
 def test_dbnet_decoder_resnet50():

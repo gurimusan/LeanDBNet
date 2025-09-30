@@ -1,6 +1,7 @@
+from io import BytesIO
+
 import pytest
 import requests
-from io import BytesIO
 
 
 @pytest.fixture(scope="session")

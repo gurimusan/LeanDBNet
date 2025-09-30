@@ -1,13 +1,15 @@
 import torch
-from src.dbnet.modeling.backbones import (
-    resnet18,
+
+from dbnet.modeling.backbones import (
     deformable_resnet18,
+    deformable_resnet50,
+    resnet18,
     resnet34,
     resnet50,
-    deformable_resnet50,
     resnet101,
     resnet152,
-    )
+)
+
 
 def test_resnet18():
     x = torch.zeros(2, 3, 32, 32)

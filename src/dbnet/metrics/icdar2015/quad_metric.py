@@ -3,7 +3,7 @@ import numpy as np
 from .eval import DetectionIoUEvaluator
 
 
-class AverageMeter(object):
+class AverageMeter:
     """Computes and stores the average and current value"""
 
     def __init__(self):
@@ -38,7 +38,7 @@ class QuadMetric:
         results = []
         pred_polygons_batch = output[0]
         pred_scores_batch = output[1]
-        for tgt, pred_polygons, pred_scores in zip(target, pred_polygons_batch, pred_scores_batch):
+        for tgt, pred_polygons, pred_scores in zip(target, pred_polygons_batch, pred_scores_batch, strict=False):
             polygons = tgt["polygons"]
             ignore_tags = tgt["polygon_ignores"]
 

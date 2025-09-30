@@ -1,12 +1,13 @@
 import importlib
+from typing import Any
 
-import numpy as np
 import cv2
-from shapely.geometry import Polygon
+import numpy as np
 import pyclipper
-
 import torch
+from shapely.geometry import Polygon
 from torch import nn
+
 
 class DBNet(nn.Module):
     thresh = 0.3
@@ -17,29 +18,39 @@ class DBNet(nn.Module):
 
     def __init__(
         self,
-        backbone="deformable_resnet50",
-        backbone_args: dict[str, any] = {},
+        backbone="resnet18",  # Paper uses ResNet-18, but deformable_resnet50 is also available
+        backbone_args: dict[str, Any] = {},
         decoder="DBNetDecoder",
-        decoder_args: dict[str, any] = {},
+        decoder_args: dict[str, Any] = {},
         loss="DBNetLoss",
-        loss_args: dict[str, any] = {},
+        loss_args: dict[str, Any] = {},
         ):
+        """
+        Args:
+            backbone: Backbone network name. Paper uses 'resnet18', but 'deformable_resnet50'
+                     and other variants are also available for better performance.
+            backbone_args: Arguments for backbone initialization
+            decoder: Decoder network name
+            decoder_args: Arguments for decoder initialization
+            loss: Loss function name
+            loss_args: Arguments for loss initialization
+        """
         super().__init__()
         self.backbone = self._load_backbone(backbone, backbone_args)
-        self.decoder = self._load_decoder(decoder, {**{
-            "in_channels": self.backbone.out_channels,
-            }, **decoder_args})
+        self.decoder = self._load_decoder(decoder, {
+            "in_channels": self.backbone.out_channels
+            , **decoder_args})
         self.loss = self._load_loss(loss, loss_args)
 
-    def forward(self, x: torch.Tensor, target: list[any] | None = None, return_preds: bool = False):
+    def forward(self, x: torch.Tensor, target: list[dict[str, Any]] | None = None, return_preds: bool = False):
         y = self.backbone(x)
         y = self.decoder(y)
 
-        result: dict[str, any] = dict(out_map=y["prob_map"])
+        result: dict[str, Any] = dict(out_map=y["prob_map"])
 
         if target is None or return_preds:
             # Disable for torch.compile compatibility
-            @torch.compiler.disable  # type: ignore[attr-defined]
+            @torch.compiler.disable
             def _pred(prob_map: torch.Tensor):
                 return self._pred_boxes(prob_map.detach().cpu().numpy())
 
@@ -52,20 +63,20 @@ class DBNet(nn.Module):
 
         return result
 
-    def _load_backbone(self, backbone: str, backbone_args: dict[str, any]):
-        mod = importlib.import_module("src.dbnet.modeling.backbones")
+    def _load_backbone(self, backbone: str, backbone_args: dict[str, Any]):
+        mod = importlib.import_module("dbnet.modeling.backbones")
         klass = getattr(mod, backbone)
         instance = klass(**backbone_args)
         return instance
 
-    def _load_decoder(self, decoder: str, decoder_args: dict[str, any]):
-        mod = importlib.import_module("src.dbnet.modeling.decoders")
+    def _load_decoder(self, decoder: str, decoder_args: dict[str, Any]):
+        mod = importlib.import_module("dbnet.modeling.decoders")
         klass = getattr(mod, decoder)
         instance = klass(**decoder_args)
         return instance
 
-    def _load_loss(self, loss: str, loss_args: dict[str, any]):
-        mod = importlib.import_module("src.dbnet.modeling.losses")
+    def _load_loss(self, loss: str, loss_args: dict[str, Any]):
+        mod = importlib.import_module("dbnet.modeling.losses")
         klass = getattr(mod, loss)
         instance = klass(**loss_args)
         return instance
@@ -79,7 +90,7 @@ class DBNet(nn.Module):
 
         boxes_batch = []
         scores_batch = []
-        for pmap, bmap in zip(prob_map, segmentation):
+        for pmap, bmap in zip(prob_map, segmentation, strict=False):
             boxes, scores = self._boxes_from_bitmap(pmap, bmap)
             boxes_batch.append(boxes)
             scores_batch.append(scores)

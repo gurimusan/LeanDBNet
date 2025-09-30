@@ -1,19 +1,14 @@
-import csv
 import os
-from copy import deepcopy
-from typing import Callable
+from collections.abc import Callable
 from pathlib import Path
-
-from PIL import Image
+from typing import Any
 
 import numpy as np
-from tqdm import tqdm
-
 import torch
-import torch.nn.functional as F
-from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
-
+from PIL import Image
+from torch.utils.data import Dataset
+from tqdm import tqdm
 
 ICDAR_MEAN = np.array([0.485, 0.456, 0.406])
 ICDAR_STD = np.array([0.229, 0.224, 0.225])
@@ -34,7 +29,7 @@ class ICDAR2015Dataset(Dataset):
         self,
         img_root: list[str|Path],
         gt_root: list[str|Path],
-        transforms: Callable[[any], any] | None = None,
+        transforms: Callable[[Any], Any] | None = None,
         ):
         """
         Args:
@@ -63,22 +58,25 @@ class ICDAR2015Dataset(Dataset):
             self.gt_root.append(p)
 
         self.transforms = transforms
-        self.datas: list[tuple[Path, list[str], np.ndarray]] = []
+        self.datas: list[tuple[Path, str, list, list[str]]] = []
 
-        for img_root in self.img_root:
+        for img_root_item in self.img_root:
             np_dtype = np.float32
-            img_names = os.listdir(img_root)
+            img_names = os.listdir(img_root_item)
             for img_name in tqdm(iterable=img_names, desc="Preparing and Loading icdar2015", total=len(img_names)):
-                img_path = Path(img_root, img_name)
+                img_path = Path(img_root_item, img_name)
                 img_id = Path(img_name).stem
-                for gt_root in self.gt_root:
-                    gt_path = Path(gt_root, "gt_" + img_id + ".txt")
+                gt_path = None
+                for gt_root_item in self.gt_root:
+                    gt_path = Path(gt_root_item, "gt_" + img_id + ".txt")
                     if os.path.exists(gt_path):
                         break
-                    gt_path = None
 
                 polygon_classes: list[str] = []
                 polygons: list = []
+
+                if gt_path is None:
+                    continue
 
                 with open(gt_path, newline="\n") as f:
                     for line in f:
@@ -98,7 +96,7 @@ class ICDAR2015Dataset(Dataset):
 
         return img, img_path, img_id, polygons, polygon_classes
 
-    def _format_sample(self, sample):
+    def _format_sample(self, sample) -> tuple[torch.Tensor, dict[str, Any]]:
         img, img_path, img_id, polygons, polygon_classes = sample
 
         img = TF.to_tensor(img)
@@ -114,22 +112,23 @@ class ICDAR2015Dataset(Dataset):
             }
 
         if self.transforms is not None:
-            img, target = self.transforms(img, target)
+            img, target = self.transforms(img, target)  # type: ignore[call-arg]
 
         return img, target
 
     def __len__(self):
         return len(self.datas)
 
-    def __getitem__(self, index: int) -> (torch.Tensor, dict):
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, dict[str, Any]]:
         """
         Returns:
             image: image as tensor(N, C, H, W).
             target: metadata(e.g. polygons, polygon_classes, ...)
         """
-        return self._format_sample(self._read_sample(index))
+        result = self._format_sample(self._read_sample(index))
+        return result
 
-    def get_by_id(self, id) -> (torch.Tensor, dict):
+    def get_by_id(self, id) -> tuple[torch.Tensor, dict[str, Any]]:
         for d in self.datas:
             if d[1] == id:
                 img_path, img_id, polygons, polygon_classes = d
@@ -138,5 +137,6 @@ class ICDAR2015Dataset(Dataset):
                 with Image.open(img_path) as pil_img:
                     img = np.array(pil_img)
 
-                return self._format_sample((img, img_path, img_id, polygons, polygon_classes))
+                result = self._format_sample((img, img_path, img_id, polygons, polygon_classes))
+                return result
         raise Exception("no data")

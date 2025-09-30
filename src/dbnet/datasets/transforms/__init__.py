@@ -1,13 +1,12 @@
 import random
+
 import numpy as np
 import torch
-from torch import nn
 import torchvision.transforms.functional as F
-from torchvision.transforms.v2 import Compose, RandomApply, RandomChoice, Normalize
-
 from shapely import affinity
 from shapely.geometry import Polygon
-
+from torch import nn
+from torchvision.transforms.v2 import Compose, Normalize, RandomApply, RandomChoice
 
 __all__ = [
     "Compose",
@@ -48,7 +47,7 @@ class RandomMinResize(nn.Module):
 
         return min_side, max_side
 
-    def forward(self, img: torch.Tensor, target: dict) -> (torch.Tensor, dict):
+    def forward(self, img: torch.Tensor, target: dict) -> tuple[torch.Tensor, dict]:
         """
         Args:
             img: image as tensor (C, H, W)
@@ -88,7 +87,7 @@ class RandomMinResize(nn.Module):
 class HorizontalFlip(nn.Module):
     """画像を水平反転する"""
 
-    def forward(self, img: np.ndarray, target: dict) -> (np.ndarray, dict):
+    def forward(self, img: np.ndarray, target: dict) -> tuple[np.ndarray, dict]:
         """
         Args:
             img: image as tensor (C, H, W)
@@ -119,14 +118,14 @@ class RandomCrop(nn.Module):
         self.max_tries = max_tries
         self.min_crop_side_ratio = min_crop_side_ratio
 
-    def forward(self, img: torch.Tensor, target: dict) -> (torch.Tensor, dict):
+    def forward(self, img: torch.Tensor, target: dict) -> tuple[torch.Tensor, dict]:
         """
         Args:
             img: image as tensor (C, H, W)
             target: metadata(e.g. polygons, polygon_classes, ...)
         """
-        all_care_polygons = [p for p, ignore, c in zip(target["polygons"], target["polygon_ignores"], target["polygon_classes"]) if not ignore]
-        crop_x, crop_y, crop_w, crop_h = self._crop_area(img, all_care_polygons)
+        all_care_polygons = [p for p, ignore, c in zip(target["polygons"], target["polygon_ignores"], target["polygon_classes"], strict=False) if not ignore]
+        crop_x, crop_y, crop_w, crop_h = self._crop_area(img, np.array(all_care_polygons))
 
         scale_w = self.size[0] / crop_w
         scale_h = self.size[1] / crop_h
@@ -141,7 +140,7 @@ class RandomCrop(nn.Module):
         polygons = []
         polygon_ignores = []
         polygon_classes = []
-        for p, ignore, c in zip(target["polygons"], target["polygon_ignores"], target["polygon_classes"]):
+        for p, ignore, c in zip(target["polygons"], target["polygon_ignores"], target["polygon_classes"], strict=False):
             poly = ((np.array(p) - (crop_x, crop_y)) * scale).tolist()
             if not self._is_poly_outside_rect(poly, 0, 0, w, h):
                 polygons.append(poly)
@@ -246,7 +245,7 @@ class RandomRotate(nn.Module):
         super().__init__()
         self.degrees = degrees
 
-    def forward(self, img: torch.Tensor, target: dict) -> (torch.Tensor, dict):
+    def forward(self, img: torch.Tensor, target: dict) -> tuple[torch.Tensor, dict]:
         """
         Args:
             img: image as tensor (C, H, W)
@@ -262,7 +261,7 @@ class RandomRotate(nn.Module):
         polygons = []
         polygon_ignores = []
         polygon_classes = []
-        for p, ignore, c in zip(target["polygons"], target["polygon_ignores"], target["polygon_classes"]):
+        for p, ignore, c in zip(target["polygons"], target["polygon_ignores"], target["polygon_classes"], strict=False):
             rotated_p = self._rotate_poly(p, angle, (cw, ch))
             if not self._is_poly_outside_rect(rotated_p, 0, 0, w, h):
                 polygons.append(rotated_p)

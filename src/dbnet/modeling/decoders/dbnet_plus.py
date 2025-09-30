@@ -1,6 +1,8 @@
+from typing import Any
+
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class ScaleChannelAttention(nn.Module):
@@ -112,7 +114,7 @@ class ScaleSpatialAttention(nn.Module):
 
 
 class ScaleFeatureSelection(nn.Module):
-    def __init__(self, in_channels, inter_channels , out_features_num=4, attention_type='scale_spatial'):
+    def __init__(self, in_channels, inter_channels , out_features_num=4, attention_type='scale_spatial', init_weight=True):
         super().__init__()
 
         self.in_channels=in_channels
@@ -121,11 +123,18 @@ class ScaleFeatureSelection(nn.Module):
         self.conv = nn.Conv2d(in_channels, inter_channels, 3, padding=1)
         self.type = attention_type
         if self.type == 'scale_spatial':
-            self.enhanced_attention = ScaleSpatialAttention(inter_channels, inter_channels//4, out_features_num)
+            self.enhanced_attention = ScaleSpatialAttention(inter_channels, inter_channels//4, out_features_num, init_weight)
         elif self.type == 'scale_channel_spatial':
-            self.enhanced_attention = ScaleChannelSpatialAttention(inter_channels, inter_channels // 4, out_features_num)
+            self.enhanced_attention = ScaleChannelSpatialAttention(inter_channels, inter_channels // 4, out_features_num, init_weight)
         elif self.type == 'scale_channel':
-            self.enhanced_attention = ScaleChannelAttention(inter_channels, inter_channels//2, out_features_num)
+            self.enhanced_attention = ScaleChannelAttention(inter_channels, inter_channels//2, out_features_num, init_weight)
+
+        if init_weight:
+            self._init_weights_self()
+
+    def _init_weights_self(self):
+        for m in self.modules():
+            self._init_weights(m)
 
     def _init_weights(self, m):
         classname = m.__class__.__name__
@@ -216,6 +225,7 @@ class DBNetPlusDecoder(nn.Module):
         self.out4.apply(self._init_weights)
         self.out3.apply(self._init_weights)
         self.out2.apply(self._init_weights)
+        self.concat_attention.apply(self._init_weights)
 
     def _init_weights(self, m):
         classname = m.__class__.__name__
@@ -285,7 +295,7 @@ class DBNetPlusDecoder(nn.Module):
         fuse = torch.cat((p5, p4, p3, p2), 1)
         fuse = self.concat_attention(fuse, [p5, p4, p3, p2])
 
-        result: dict[str, any] = dict()
+        result: dict[str, Any] = dict()
 
         # pred text segmentation map
         prob_map = self.binarize(fuse)

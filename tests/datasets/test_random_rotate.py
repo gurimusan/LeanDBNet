@@ -1,10 +1,10 @@
-import torch
+from unittest.mock import patch
+
 import numpy as np
 import pytest
-from unittest.mock import patch
-import math
+import torch
 
-from src.dbnet.datasets.transforms import RandomRotate
+from dbnet.datasets.transforms import RandomRotate
 
 
 class TestRandomRotate:
