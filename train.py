@@ -17,7 +17,8 @@ from dbnet.utils import EarlyStopper
 def train(model, train_loader, optimizer, scheduler, batch_transforms):
     model.train()
 
-    train_loss, batch_cnt = 0, 0
+    train_loss_sum, batch_cnt = 0.0, 0
+    last_lr = 0.0
     pbar = tqdm(train_loader, dynamic_ncols=True)
     for images, targets in pbar:
         images, targets = batch_transforms(images, targets)
@@ -26,20 +27,21 @@ def train(model, train_loader, optimizer, scheduler, batch_transforms):
 
         optimizer.zero_grad()
 
-        train_loss = model(images, targets)["loss"]
-        train_loss.backward()
+        loss = model(images, targets)["loss"]
+        loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
         optimizer.step()
 
         scheduler.step()
         last_lr = scheduler.get_last_lr()[0]
 
-        pbar.set_description(f"Training loss: {train_loss.item():.6} | LR: {last_lr:.6}")
+        loss_value = loss.item()
+        pbar.set_description(f"Training loss: {loss_value:.6f} | LR: {last_lr:.6f}")
 
-        train_loss += train_loss.item()
+        train_loss_sum += loss_value
         batch_cnt += 1
 
-    train_loss /= batch_cnt
+    train_loss = train_loss_sum / batch_cnt if batch_cnt else 0.0
     return train_loss, last_lr
 
 
